@@ -1,18 +1,8 @@
 import PropTypes from 'prop-types';
-import styled from 'styled-components';
-
-const Input = styled.input`
-  color: #2a2a2a;
-  font-size: 18px;
-  margin-bottom: 20px;
-  &:focus {
-    outline-color: #2196f3;
-  }
-`;
-
-const FindName= styled.div`
-  font-size: 22px;
-`;
+import {
+  Input, 
+  FindName 
+} from './Filter.styled'
 
 const Filter = props => {
   const { handleFilter } = props;

@@ -1,78 +1,113 @@
 import { Component } from 'react';
 import { nanoid } from 'nanoid'
+import CloseIcon from '@mui/icons-material/Close';
 import ContactForm from './contactForm';
 import Filter from './filter';
 import ContactList from './contactList';
-import styled from 'styled-components';
+import baseContacts from '../resources/contacts.json';
+import{
+  TitleMain, 
+  TitleList,
+  CloseButton,
+} from './App.styled'
+import Modal from './modal/Modal';
 
-const TitleMain = styled.h1`
-  font-size: 40px;
-  margin-bottom: 20px;
-  margin-top: 0;
-`;
-
-const TitleList = styled.h2`
-  font-size: 40px;
-  margin-bottom: 20px;
-  margin-top: 0;
-`;
-
+const CONTACTS = 'contacts';
 class App extends Component {
   constructor() {
     super();
     this.state = {
       contacts: [],
       filter: '',
+      id: '',
+      name: '',
+      number: '',
+      showModal: false,
     };
   }
 
-  validateExcistContact = ({
-    contacts,
-    values,
-  }) => {
+  toggleModal = () => {
+    this.setState(({showModal}) => ({
+      showModal: !showModal,
+    }));
+  };
+
+  validateExistContact = ({ contacts, values }) => {
+    const { showModal } = this.state;
     const messages = [];
     if (contacts.some(contact => contact.number === values.number)) {
-      const user = contacts
-        .find(contact => contact.number === values.number).name;
+      const user = contacts.find(
+        contact => contact.number === values.number
+      ).name;
       messages.push(`${values.number} is already belongs to ${user}!`);
     }
     if (contacts.some(contact => contact.name === values.name)) {
-      const phone = contacts
-        .find(contact => contact.name === values.name).number;
-      messages
-      .push(`${values.name} is already containce in phonebook with phone ${phone}!`);
+      const phone = contacts.find(
+        contact => contact.name === values.name
+      ).number;
+      messages.push(
+        `${values.name} is already containce in phonebook with phone ${phone}!`
+      );
     }
-    if (messages.length) {
+    if (messages.length && !showModal) {
       alert(messages.join('\n'));
     }
     return !!messages.length;
   };
 
   handleSubmit = (values, actions) => {
-    const { contacts } = this.state;
+    const { contacts, id, showModal } = this.state;
     if (
-      this.validateExcistContact({
+      this.validateExistContact({
         contacts,
         values,
-      })
+      }) && !showModal
     ) {
       return;
     }
-    const newContacts = [...contacts];
-    this.setState({
-      contacts: [
+    let newContacts = [...contacts];
+    if (id) {
+      newContacts = [
+        ...newContacts.filter(contact => contact.id !== id),
+        {
+          id,
+          name: values.name,
+          number: values.number,
+        },
+      ]
+    } else {
+      newContacts = [
         ...newContacts,
         {
           id: nanoid(),
           name: values.name,
           number: values.number,
         },
-      ],
+      ]
+    }
+    this.setState({
+      contacts: newContacts,
+      id: '',
+      showModal: false,
     });
-    actions.resetForm();
+    actions.resetForm({
+      name: '',
+      number: '',
+    });
+  };
+  
+  onContactEdit = id => {
+    const { contacts, showModal } = this.state;
+    const currentContact = contacts.find(contact => contact.id === id);
+    this.setState({
+      showModal: !showModal,
+      id: currentContact.id,
+      name: currentContact.name,
+      number: currentContact.number,
+    });
   };
 
-  onDelete = id => {
+  onContactDelete = id => {
     const { contacts } = this.state;
     const newContacts = [...contacts];
     this.setState({
@@ -81,14 +116,38 @@ class App extends Component {
   };
 
   handleFilter = event => {
-    console.log({ event });
     this.setState({
       filter: event.target.value,
     });
   };
 
+  componentDidMount() {
+    localStorage.setItem(CONTACTS, JSON.stringify(baseContacts));
+
+    const contactsString = localStorage.getItem(CONTACTS);
+    this.setState({
+      contacts: JSON.parse(contactsString),
+    });
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const {
+      contacts,
+    } = this.state;
+    if (contacts !== prevState.contacts) {
+      localStorage.setItem(CONTACTS, JSON.stringify(contacts));
+    }
+  }
+
   render() {
-    const { contacts, filter } = this.state;
+    const {
+      contacts,
+      filter,
+      showModal,
+      id,
+      name,
+      number,
+    } = this.state;
     return (
       <div
         style={{
@@ -99,20 +158,40 @@ class App extends Component {
           color: '#010101',
         }}
       >
+        {showModal && (
+          <Modal onClose={this.toggleModal}>
+            <CloseButton onClick={this.toggleModal}>
+              < CloseIcon/>
+            </CloseButton>
+            <ContactForm
+              contact={{
+                name, number
+              }}
+              handleSubmit={(values, actions) =>
+                this.handleSubmit(values, actions)
+              }
+            />
+          </Modal>
+        )}
         <div>
-          <TitleMain>Phonebook</TitleMain>
-          <ContactForm
-            handleSubmit={(values, actions) =>
-              this.handleSubmit(values, actions)
-            }
-          />
+          {!showModal && (
+            <>
+              <TitleMain>Phonebook</TitleMain>
+              <ContactForm
+                handleSubmit={(values, actions) =>
+                  this.handleSubmit(values, actions)
+                }
+              />
+            </>
+          )}
 
           <TitleList>Contacts</TitleList>
           <Filter handleFilter={e => this.handleFilter(e)} />
           <ContactList
             contacts={contacts}
             filter={filter}
-            onDelete={id => this.onDelete(id)}
+            onContactEdit={id => this.onContactEdit(id)}
+            onContactDelete={id => this.onContactDelete(id)}
           />
         </div>
       </div>
