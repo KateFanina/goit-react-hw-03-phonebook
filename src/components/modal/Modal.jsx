@@ -8,7 +8,7 @@ import {
  
  const modalRoot = document.querySelector('#modal-root');
 
- export default class extends Component {
+class Modal extends Component {
   componentDidMount(){
     window.addEventListener('keydown', this.handleKeyDown);
   }
@@ -40,3 +40,5 @@ import {
      );
    }
  }
+
+ export default Modal;
